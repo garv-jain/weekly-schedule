@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Weekly Schedule</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+  <div class="page">
+    <div class="header">
+      <h1>Weekly Schedule</h1>
+      <div class="btn-group">
+        <button class="btn btn-export" onclick="exportPNG()">Export PNG</button>
+        <button class="btn" id="orient-btn" onclick="toggleOrientation()" title="Toggle export layout">Switch to horizontal</button>
+        <button class="btn btn-secondary" onclick="openAdd('activity')">+ Activity</button>
+        <button class="btn btn-primary" onclick="openAdd('class')">+ Class</button>
+      </div>
+    </div>
+
+    <div class="type-tabs">
+      <button class="tab active" onclick="setFilter('all', this)">All</button>
+      <button class="tab" onclick="setFilter('class', this)">Classes</button>
+      <button class="tab" onclick="setFilter('activity', this)">Activities</button>
+    </div>
+
+    <div class="schedule-container">
+      <div class="grid-wrap" id="grid"></div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Modal -->
+  <div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+    <div class="modal">
+      <h3 id="modal-title">Add class</h3>
+      <div class="type-toggle">
+        <button class="type-opt active" id="tog-class" onclick="switchType('class')">Class</button>
+        <button class="type-opt" id="tog-activity" onclick="switchType('activity')">Activity</button>
+      </div>
+      <div class="form-row">
+        <label id="name-label">Class name</label>
+        <input type="text" id="f-name" placeholder="e.g. Calculus II" />
+      </div>
+      <div class="form-row">
+        <label id="room-label">Room / location</label>
+        <input type="text" id="f-room" placeholder="e.g. Hall 204" />
+      </div>
+      <div class="form-row">
+        <label>Days</label>
+        <div class="day-checks" id="day-checks">
+          <label><input type="checkbox" value="0" /> Sun</label>
+          <label><input type="checkbox" value="1" /> Mon</label>
+          <label><input type="checkbox" value="2" /> Tue</label>
+          <label><input type="checkbox" value="3" /> Wed</label>
+          <label><input type="checkbox" value="4" /> Thu</label>
+          <label><input type="checkbox" value="5" /> Fri</label>
+          <label><input type="checkbox" value="6" /> Sat</label>
+        </div>
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label>Start time</label>
+          <select id="f-start"></select>
+        </div>
+        <div>
+          <label>End time</label>
+          <select id="f-end"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Color</label>
+        <div class="color-row" id="color-row"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-danger" id="del-btn" style="display:none;" onclick="deleteEntry()">Delete</button>
+        <button class="btn" onclick="closeModalDirect()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEntry()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
