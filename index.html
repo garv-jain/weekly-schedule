@@ -558,10 +558,9 @@ body {
   </div>
 
   <script>
-// Days order: Sun, Mon, Tue, Wed, Thu, Fri, Sat
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const WEEKEND_INDICES = [0, 6]; // Sun = 0, Sat = 6
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8am–10pm
+const WEEKEND_INDICES = [0, 6];
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
 
 const CLASS_COLORS = [
   { bg: '#EEEDFE', border: '#7F77DD', text: '#3C3489' },
@@ -583,15 +582,14 @@ const ACT_COLORS = [
   { bg: '#E6F1FB', border: '#378ADD', text: '#0C447C' },
 ];
 
-// Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
 let entries = [
-  { id: 1, type: 'class',    name: 'Calculus II',    room: 'Hall 102',         days: [1, 3, 5], start: 9,    end: 10,   color: 0 },
-  { id: 2, type: 'class',    name: 'Intro to CS',    room: 'Tech 301',         days: [2, 4],    start: 11,   end: 12.5, color: 1 },
-  { id: 3, type: 'class',    name: 'English Comp',   room: 'Liberal Arts 205', days: [1, 3],    start: 13,   end: 14,   color: 2 },
-  { id: 4, type: 'class',    name: 'Physics Lab',    room: 'Science 110',      days: [4],       start: 14,   end: 16,   color: 3 },
-  { id: 5, type: 'activity', name: 'Dance Practice', room: 'Studio B',         days: [2, 5, 0], start: 17,   end: 18.5, color: 0 },
-  { id: 6, type: 'activity', name: 'CS Club',        room: 'Tech Lounge',      days: [3],       start: 18,   end: 19,   color: 4 },
-  { id: 7, type: 'activity', name: 'Gym',            room: 'Rec Center',       days: [0, 6],    start: 10,   end: 11.5, color: 2 },
+  { id: 1, type: 'class',    name: 'Calculus II',    room: 'Hall 102',         days: [1, 3, 5], start: 9,    end: 10,   color: 0, prof: '', showProf: false },
+  { id: 2, type: 'class',    name: 'Intro to CS',    room: 'Tech 301',         days: [2, 4],    start: 11,   end: 12.5, color: 1, prof: '', showProf: false },
+  { id: 3, type: 'class',    name: 'English Comp',   room: 'Liberal Arts 205', days: [1, 3],    start: 13,   end: 14,   color: 2, prof: '', showProf: false },
+  { id: 4, type: 'class',    name: 'Physics Lab',    room: 'Science 110',      days: [4],       start: 14,   end: 16,   color: 3, prof: '', showProf: false },
+  { id: 5, type: 'activity', name: 'Dance Practice', room: 'Studio B',         days: [2, 5, 0], start: 17,   end: 18.5, color: 0, prof: '', showProf: false },
+  { id: 6, type: 'activity', name: 'CS Club',        room: 'Tech Lounge',      days: [3],       start: 18,   end: 19,   color: 4, prof: '', showProf: false },
+  { id: 7, type: 'activity', name: 'Gym',            room: 'Rec Center',       days: [0, 6],    start: 10,   end: 11.5, color: 2, prof: '', showProf: false },
 ];
 
 let nextId = 8;
@@ -611,31 +609,42 @@ function loadFromStorage() {
     const raw = localStorage.getItem('schedule_entries');
     if (raw) {
       entries = JSON.parse(raw);
-      nextId = Math.max(...entries.map(e => e.id), 0) + 1;
+      nextId = Math.max(...entries.map(function(e) { return e.id; }), 0) + 1;
     }
   } catch(e) {}
 }
 
 // ── Time helpers ──────────────────────────────────────────
-function timeOptions() {
-  const opts = [];
-  for (let h = 7; h <= 22; h++) {
-    const ampm = h < 12 ? 'AM' : 'PM';
-    const d = h <= 12 ? h : h - 12;
-    opts.push({ val: h,        label: d + ':00 ' + ampm });
-    opts.push({ val: h + 0.25, label: d + ':15 ' + ampm });
-    opts.push({ val: h + 0.5,  label: d + ':30 ' + ampm });
-    opts.push({ val: h + 0.75, label: d + ':45 ' + ampm });
-  }
-  return opts;
+function parseTimeStr(str) {
+  // Accepts "9:00 AM", "14:30", "2:50 PM", "9", "14" etc.
+  str = str.trim();
+  var match = str.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if (!match) return null;
+  var h = parseInt(match[1], 10);
+  var m = match[2] ? parseInt(match[2], 10) : 0;
+  var meridiem = match[3] ? match[3].toLowerCase() : null;
+  if (meridiem === 'pm' && h !== 12) h += 12;
+  if (meridiem === 'am' && h === 12) h = 0;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h + m / 60;
 }
 
-function populateSelects() {
-  const opts = timeOptions();
-  ['f-start', 'f-end'].forEach(function(id) {
-    document.getElementById(id).innerHTML =
-      opts.map(function(o) { return '<option value="' + o.val + '">' + o.label + '</option>'; }).join('');
-  });
+function formatTimeVal(val) {
+  // Converts decimal hour (e.g. 9.5) back to "9:30 AM"
+  var h = Math.floor(val);
+  var m = Math.round((val - h) * 60);
+  var ampm = h < 12 ? 'AM' : 'PM';
+  var d = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return d + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+}
+
+function formatTimeLabel(val) {
+  // Short label for on-block display e.g. "9:30"
+  var h = Math.floor(val);
+  var m = Math.round((val - h) * 60);
+  var ampm = h < 12 ? 'am' : 'pm';
+  var d = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return d + (m > 0 ? ':' + (m < 10 ? '0' : '') + m : '') + ampm;
 }
 
 // ── Color picker ──────────────────────────────────────────
@@ -670,6 +679,8 @@ function switchType(t) {
   document.getElementById('room-label').textContent = t === 'class' ? 'Room / location' : 'Location (optional)';
   document.getElementById('f-name').placeholder = t === 'class' ? 'e.g. Calculus II' : 'e.g. Dance Practice';
   document.getElementById('f-room').placeholder = t === 'class' ? 'e.g. Hall 204' : 'e.g. Studio B';
+  // Show/hide professor row for classes only
+  document.getElementById('prof-row').style.display = t === 'class' ? '' : 'none';
   selectedColor = 0;
   buildColorPicker(t);
 }
@@ -711,10 +722,15 @@ function render() {
       const block = document.createElement('div');
       block.className = 'class-block';
       block.style.cssText = 'background:' + c.bg + '; border-left-color:' + c.border + '; top:' + (48 + startOff * 48) + 'px; height:' + (dur * 48 - 2) + 'px;';
+
+      var timeStr = formatTimeLabel(cls.start) + ' - ' + formatTimeLabel(cls.end);
       block.innerHTML =
         '<div class="name" style="color:' + c.text + '">' + cls.name + '</div>' +
         '<div class="room" style="color:' + c.text + '">' + cls.room + '</div>' +
+        '<div class="time-range" style="color:' + c.text + '">' + timeStr + '</div>' +
+        (cls.type === 'class' && cls.showProf && cls.prof ? '<div class="prof" style="color:' + c.text + '">' + cls.prof + '</div>' : '') +
         (cls.type === 'activity' ? '<div class="type-badge" style="color:' + c.text + '">activity</div>' : '');
+
       block.addEventListener('click', (function(id) { return function() { openEdit(id); }; })(cls.id));
       col.appendChild(block);
     });
@@ -740,9 +756,11 @@ function openAdd(type) {
   document.getElementById('modal-title').textContent = modalType === 'class' ? 'Add class' : 'Add activity';
   document.getElementById('f-name').value = '';
   document.getElementById('f-room').value = '';
+  document.getElementById('f-prof').value = '';
+  document.getElementById('f-show-prof').checked = false;
   document.querySelectorAll('#day-checks input').forEach(function(cb) { cb.checked = false; });
-  document.getElementById('f-start').value = 9;
-  document.getElementById('f-end').value = 10;
+  document.getElementById('f-start').value = '9:00 AM';
+  document.getElementById('f-end').value = '10:00 AM';
   document.getElementById('del-btn').style.display = 'none';
   switchType(modalType);
   document.getElementById('modal-bg').classList.add('open');
@@ -757,11 +775,13 @@ function openEdit(id) {
   document.getElementById('modal-title').textContent = e.type === 'class' ? 'Edit class' : 'Edit activity';
   document.getElementById('f-name').value = e.name;
   document.getElementById('f-room').value = e.room;
+  document.getElementById('f-prof').value = e.prof || '';
+  document.getElementById('f-show-prof').checked = e.showProf || false;
   document.querySelectorAll('#day-checks input').forEach(function(cb) {
     cb.checked = e.days.includes(Number(cb.value));
   });
-  document.getElementById('f-start').value = e.start;
-  document.getElementById('f-end').value = e.end;
+  document.getElementById('f-start').value = formatTimeVal(e.start);
+  document.getElementById('f-end').value = formatTimeVal(e.end);
   document.getElementById('del-btn').style.display = 'inline-block';
   switchType(e.type);
   document.getElementById('modal-bg').classList.add('open');
@@ -771,16 +791,27 @@ function saveEntry() {
   const name = document.getElementById('f-name').value.trim();
   if (!name) return;
   const days = Array.from(document.querySelectorAll('#day-checks input:checked')).map(function(cb) { return Number(cb.value); });
-  const start = parseFloat(document.getElementById('f-start').value);
-  const end = parseFloat(document.getElementById('f-end').value);
-  if (end <= start || !days.length) return;
-  const room = document.getElementById('f-room').value.trim();
+
+  var startVal = parseTimeStr(document.getElementById('f-start').value);
+  var endVal   = parseTimeStr(document.getElementById('f-end').value);
+  if (startVal === null || endVal === null) {
+    showToast('Invalid time — use e.g. 9:00 AM or 14:30');
+    return;
+  }
+  if (endVal <= startVal || !days.length) {
+    showToast('End time must be after start time');
+    return;
+  }
+
+  const room     = document.getElementById('f-room').value.trim();
+  const prof     = document.getElementById('f-prof').value.trim();
+  const showProf = document.getElementById('f-show-prof').checked;
 
   if (editId) {
     const e = entries.find(function(x) { return x.id === editId; });
-    Object.assign(e, { name: name, room: room, days: days, start: start, end: end, color: selectedColor, type: modalType });
+    Object.assign(e, { name: name, room: room, days: days, start: startVal, end: endVal, color: selectedColor, type: modalType, prof: prof, showProf: showProf });
   } else {
-    entries.push({ id: nextId++, type: modalType, name: name, room: room, days: days, start: start, end: end, color: selectedColor });
+    entries.push({ id: nextId++, type: modalType, name: name, room: room, days: days, start: startVal, end: endVal, color: selectedColor, prof: prof, showProf: showProf });
   }
 
   saveToStorage();
@@ -826,7 +857,6 @@ function buildVerticalExport() {
   var grid = document.createElement('div');
   grid.style.cssText = 'display:grid; grid-template-columns:' + ETIMEW + 'px repeat(7,1fr); border:0.5px solid rgba(0,0,0,0.12); border-radius:10px; overflow:hidden; width:900px; background:#fff;';
 
-  // Time column
   var tc = document.createElement('div');
   tc.style.cssText = 'background:#f5f4f0;';
   tc.innerHTML = '<div style="height:' + EHDR + 'px;background:#f5f4f0;border-bottom:0.5px solid rgba(0,0,0,0.12);"></div>' +
@@ -848,11 +878,14 @@ function buildVerticalExport() {
       var c = pal[cls.color] || pal[0];
       var top = EHDR + (cls.start - 8) * ESLOT;
       var h = (cls.end - cls.start) * ESLOT - 2;
+      var timeStr = formatTimeLabel(cls.start) + ' - ' + formatTimeLabel(cls.end);
       var blk = document.createElement('div');
       blk.style.cssText = 'position:absolute;left:3px;right:3px;border-radius:6px;padding:5px 7px;overflow:hidden;z-index:1;border-left:3px solid ' + c.border + ';background:' + c.bg + ';top:' + top + 'px;height:' + h + 'px;';
       blk.innerHTML =
         '<div style="font-size:11px;font-weight:500;line-height:1.3;color:' + c.text + ';white-space:normal;word-break:break-word;">' + cls.name + '</div>' +
         '<div style="font-size:10px;opacity:.75;margin-top:2px;color:' + c.text + ';white-space:normal;word-break:break-word;">' + cls.room + '</div>' +
+        '<div style="font-size:9px;opacity:.65;margin-top:1px;color:' + c.text + ';">' + timeStr + '</div>' +
+        (cls.type === 'class' && cls.showProf && cls.prof ? '<div style="font-size:9px;opacity:.65;margin-top:1px;color:' + c.text + ';font-style:italic;">' + cls.prof + '</div>' : '') +
         (cls.type === 'activity' ? '<div style="font-size:9px;opacity:.6;margin-top:1px;text-transform:uppercase;letter-spacing:.04em;color:' + c.text + ';">activity</div>' : '');
       col.appendChild(blk);
     });
@@ -870,7 +903,6 @@ function buildHorizontalExport() {
   var table = document.createElement('div');
   table.style.cssText = 'position:relative;border:0.5px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden;width:' + totalW + 'px;background:#fff;';
 
-  // Header row
   var hdrRow = document.createElement('div');
   hdrRow.style.cssText = 'display:flex;border-bottom:0.5px solid rgba(0,0,0,0.12);background:#f5f4f0;';
   hdrRow.innerHTML = '<div style="width:' + EDAYW + 'px;flex-shrink:0;height:' + EHDR + 'px;background:#f5f4f0;"></div>' +
@@ -960,7 +992,6 @@ function exportPNG() {
 
 // ── Init ──────────────────────────────────────────────────
 loadFromStorage();
-populateSelects();
 render();
   </script>
 </body>
