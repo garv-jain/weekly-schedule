@@ -243,6 +243,26 @@ body {
   letter-spacing: 0.04em;
 }
 
+.class-block .time-range {
+  font-size: 9px;
+  opacity: 0.65;
+  margin-top: 1px;
+}
+
+.class-block .prof {
+  font-size: 9px;
+  opacity: 0.65;
+  margin-top: 1px;
+  font-style: italic;
+}
+
+.prof-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 /* Legend */
 .legend {
   display: flex;
@@ -515,6 +535,14 @@ body {
         <div>
           <label>End time</label>
           <input type="text" id="f-end" placeholder="e.g. 10:50 AM" />
+        </div>
+      </div>
+      <div class="form-row" id="prof-row">
+        <label>Professor (optional)</label>
+        <input type="text" id="f-prof" placeholder="e.g. Dr. Smith" />
+        <div class="prof-toggle">
+          <input type="checkbox" id="f-show-prof" />
+          <label for="f-show-prof" style="display:inline;font-size:12px;color:var(--text-secondary);margin-bottom:0;">Show on schedule</label>
         </div>
       </div>
       <div class="form-row">
